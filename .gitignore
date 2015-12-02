@@ -1,0 +1,8 @@
+node_modules/
+config/env/
+log/
+.log
+.idea
+.bowerrc
+.DS_Store
+dump.rdb

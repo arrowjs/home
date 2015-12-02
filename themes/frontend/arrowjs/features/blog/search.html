@@ -1,0 +1,8 @@
+{% extends 'default_layout.html' %}
+{% block content %}
+    <main id="content" class="content" role="main" itemprop="mainContentOfPage">
+        <h6>Search : About ({{ totalItems }}) result for keyword "{{ keyword }}"</h6>
+        <hr />
+        {% include 'stargazer/loop-items.html' %}
+    </main>
+{% endblock %}

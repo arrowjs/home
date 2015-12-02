@@ -1,0 +1,100 @@
+{% extends 'layout.html' %}
+
+{% block cssExtends %}
+    <link href="/theme_resources/backend/default/plugins/select2/select2.min.css" rel="stylesheet">
+    <link href="/theme_resources/backend/default/plugins/lepture-markdown/editor.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <form id="edit-form" method="post">
+        {% include "toolbar.html" %}
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class=" box box-solid box-primary">
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="name">Name <span class="required">*</span></label>
+                                    <input type="text" class="form-control" name="name" id="name"
+                                           value="{{ version.name }}" autocomplete="off" required="required" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="change_log_markdown">Change Log</label>
+                                    <textarea name="change_log_markdown" id="change_log_markdown"
+                                              class="form-control">{{ version.change_log_markdown }}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="is_current">Is Current</label>
+                                    <select name="is_current" id="is_current" class="form-control" required="required">
+                                        <option value="0" {% if version.is_current == 0 %}selected="selected"{% endif %}>
+                                            No
+                                        </option>
+                                        <option value="1" {% if version.is_current == 1 %}selected="selected"{% endif %}>
+                                            Yes
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="published">Published <span class="required">*</span></label>
+                                    <select data-tags="true" name="published" id="published" class="form-control"
+                                            required="required">
+                                        <option value="1" {% if version.published == 1 %}selected="selected"{% endif %}>
+                                            Publish
+                                        </option>
+                                        <option value="0" {% if version.published == 0 %}selected="selected"{% endif %}>
+                                            Unpublish
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea name="description" id="description" class="form-control"
+                                              rows="7">{{ version.description }}</textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="alias">Alias</label>
+                                    <input type="text" class="form-control" name="alias" id="alias"
+                                           value="{{ version.alias }}" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block jsExtends %}
+    <script src="/theme_resources/backend/default/plugins/lepture-markdown/editor.js"></script>
+    <script src="/theme_resources/backend/default/plugins/lepture-markdown/marked.js"></script>
+    <script>
+        $(function () {
+            var editor = new Editor({
+                element: document.getElementById('change_log_markdown'),
+                tools: true
+            });
+            editor.render();
+
+            $("#edit-form").submit(function () {
+                var form = $('#edit-form');
+                var md = editor.codemirror.getValue();
+                var parse = editor.constructor.markdown;
+                var html = parse(md);
+                var html_elem = $("<input>")
+                        .attr("type", "hidden")
+                        .attr("name", "change_log_html").val(html);
+                form.append($(html_elem));
+            });
+        });
+    </script>
+{% endblock %}

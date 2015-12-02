@@ -1,0 +1,34 @@
+{% extends 'default_layout.html' %}
+
+{% block content %}
+    <div class="arr-top-container">
+        <div class="size-wrap">
+            {% include 'arrowjs/_modules/documentation/sidebar_view.html' %}
+
+            <div class="arr-right-content">
+                <div class="arr-post-title text-center">
+                    ArrowJS {{ version.name|title }} documentation
+                </div>
+
+                <div class="arr-post-content">
+                    {{ "doc-content-sidebar"|get_sidebar(route)|safe }}
+                    <p>
+                        Other version: /
+                        {% for v in versions %}
+                            {% if v.id == version.id %}
+                                {{ v.name }} /
+                            {% else %}
+                                <a href="/documentation/{{ v.alias }}"
+                                   style="text-decoration: underline;"> {{ v.name }}</a> /
+                            {% endif %}
+                        {% endfor %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block jsExtends %}
+    {% include 'arrowjs/_modules/documentation/sidebar_script.html' %}
+{% endblock %}
