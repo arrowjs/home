@@ -28,6 +28,25 @@
 
 {% block content %}
 {% endblock %}
+<!-- Advertisments -->
+<div><a id="banner" href="http://techmaster.vn/khoa-hoc/25480/nodejs-xay-dung-web-site-toc-do-cao"
+        style="position: fixed;
+    bottom: 20%;
+    padding: 15px;
+    background-color: orange;
+    text-decoration: none;
+    color: white;">
+        Bạn muốn tạo website tương tự ?
+    </a>
+</div>
+<script>
+    setInterval(function () {
+        $('#banner').slideUp();
+        setTimeout(function () {
+            $('#banner').slideDown();
+        },2000)
+    },4000);
+</script>
 
 {% include '_footer.twig' %}
 
