@@ -1,9 +1,9 @@
-{% extends 'default_layout.html' %}
+{% extends '_layout.twig' %}
 
 {% block content %}
     <div class="arr-top-container">
         <div class="size-wrap">
-            {% include 'arrowjs/_modules/documentation/sidebar_view.html' %}
+            {% include 'sidebar_view.twig' %}
 
             <div class="arr-right-content">
                 <div class="arr-post-title text-center">
@@ -11,7 +11,7 @@
                 </div>
 
                 <div class="arr-post-content">
-                    {{ "doc-content-sidebar"|get_sidebar(route)|safe }}
+                    {{ getSidebar("doc-content-sidebar") | async | safe }}
                     <p>
                         Other version: /
                         {% for v in versions %}
@@ -30,5 +30,5 @@
 {% endblock %}
 
 {% block jsExtends %}
-    {% include 'arrowjs/_modules/documentation/sidebar_script.html' %}
+    {% include 'sidebar_script.twig' %}
 {% endblock %}

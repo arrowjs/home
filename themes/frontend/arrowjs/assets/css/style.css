@@ -148,6 +148,8 @@ fieldset {
 
 .navbar-inverse .dropdown-menu li:hover a {
   color: #616161 !important; }
+.navbar-inverse .dropdown-menu li a {
+  color: #e3e3e3; }
 
 .arr-navbar {
   margin-bottom: 0; }
