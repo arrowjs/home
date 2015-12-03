@@ -6,7 +6,7 @@ module.exports = {
         port: '6379',
         type: 'redis'
     },
-    redis_prefix: 'arrowCMS_',
+    redis_prefix: 'arrowjs.io_ ',
     redis_key: {
         configs: 'site_setting',
         features: 'all_features',

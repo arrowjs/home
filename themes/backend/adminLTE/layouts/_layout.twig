@@ -49,19 +49,21 @@
     <div class="content-wrapper">
         <!-- Content Header (Page header) -->
         <section class="content-header">
-            <ol class="breadcrumb" style="float: none; right: 0; position: initial;">
-                {{ breadcrumb | render_breadcrumb | safe }}
-            </ol>
-            <h1>
-                {{ title }}
-                <small>{{ desc }}</small>
-            </h1>
+            {% if breadcrumb %}
+                <ol class="breadcrumb" style="float: none; right: 0; position: initial;">
+                    {{ breadcrumb | render_breadcrumb | safe }}
+                </ol>
+            {% endif %}
+            {% if title %}
+                <h1>
+                    {{ title }}
+                    <small>{{ desc }}</small>
+                </h1>
+            {% endif %}
         </section>
         <!-- Main content -->
         <section class="content">
-
             {% include '_messages.twig' %}
-
             {% block content %}{% endblock %}
         </section>
         <!-- /.content -->
@@ -150,8 +152,7 @@
         });
     });
 </script>
-
-{% block jsExtends %}{% endblock %}
-
+{% block jsExtends %}
+{% endblock %}
 </body>
 </html>

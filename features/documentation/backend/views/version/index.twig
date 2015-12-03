@@ -1,13 +1,13 @@
-{% extends 'layout.html' %}
+{% extends '_layout.twig' %}
 
 {% block content %}
     <div class="row">
         <div class="col-md-12">
-            {% include 'toolbar.html' %}
+            {{ toolbar | safe }}
             <div class="box box-solid box-primary">
                 <div class="box-body table-responsive no-padding">
-                    {% include 'basic_table.html' %}
-                    {{ totalPage|pagination(currentPage,'/admin/documentation/versions/page/{page}/sort/'+currentColumn+'/'+currentOrder)|safe }}
+                    {% include 'basic_table/_table.twig' %}
+                    {{ paginateLinks(totalPage, currentPage, '/admin/documentation/versions/page/{page}/sort/'+currentColumn+'/'+currentOrder) | safe }}
                 </div>
             </div>
         </div>

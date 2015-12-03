@@ -12,14 +12,14 @@ module.exports = function (component,app) {
                 permissions : 'api_index'
             }
         },
-        '/documentation/apis' : {
+        'apis' : {
             get :{
                 handler : comp.apiIndex,
                 authenticate : true,
                 permissions : 'api_index'
             }
         },
-        '/documentation/apis/create' : {
+        'apis/create' : {
             get :{
                 handler : comp.apiCreate,
                 authenticate : true,
@@ -31,14 +31,14 @@ module.exports = function (component,app) {
                 permissions : 'api_create'
             }
         },
-        '/documentation/apis/createapi' : {
+        'apis/createapi' : {
             post :{
                 handler : comp.apiCreateApi,
                 authenticate : true,
                 permissions : 'api_create'
             }
         },
-        '/documentation/apis/edit/:cid' : {
+        'apis/edit/:cid' : {
             get :{
                 handler : comp.apiEdit,
                 authenticate : true,
@@ -50,7 +50,7 @@ module.exports = function (component,app) {
                 permissions : 'api_edit'
             }
         },
-        '/documentation/apis/edit2/:vid' : {
+        'apis/edit2/:vid' : {
             get :{
                 handler : comp.apiEdit,
                 authenticate : true,
@@ -62,21 +62,21 @@ module.exports = function (component,app) {
                 permissions : 'api_edit'
             }
         },
-        '/documentation/apis/page/:page' : {
+        'apis/page/:page' : {
             get :{
                 handler : comp.apiIndex,
                 authenticate : true,
                 permissions : 'api_index'
             }
         },
-        '/documentation/apis/deleterecord(:msg)?' : {
+        'apis/deleterecord(:msg)?' : {
             post :{
                 handler : comp.apiDeleteRecord,
                 authenticate : true,
                 permissions : 'api_delete'
             }
         },
-        '/documentation/apis/page/:page/sort/:sort/:order' : {
+        'apis/page/:page/sort/:sort/:order' : {
             get :{
                 handler : comp.apiIndex,
                 authenticate : true,
@@ -84,14 +84,14 @@ module.exports = function (component,app) {
             }
         },
         //sections route
-        '/documentation/sections' : {
+        'sections' : {
             get :{
                 handler : comp.sectionIndex,
                 authenticate : true,
                 permissions : 'section_index'
             }
         },
-        '/documentation/sections/create' : {
+        'sections/create' : {
             get :{
                 handler : comp.sectionCreate,
                 authenticate : true,
@@ -103,14 +103,14 @@ module.exports = function (component,app) {
                 permissions : 'section_create'
             }
         },
-        '/documentation/sections/createsection' : {
+        'sections/createsection' : {
             post :{
                 handler : comp.sectionCreateSection,
                 authenticate : true,
                 permissions : 'section_create'
             }
         },
-        '/documentation/sections/edit/:cid' : {
+        'sections/edit/:cid' : {
             get :{
                 handler : comp.sectionEdit,
                 authenticate : true,
@@ -122,46 +122,117 @@ module.exports = function (component,app) {
                 permissions : 'section_edit'
             }
         },
-        '/documentation/sections/update' : {
+        'sections/update' : {
             post :{
                 handler : comp.sectionUpdate,
                 authenticate : true,
                 permissions : 'section_edit'
             }
         },
-        '/documentation/sections/deleterecord' : {
+        'sections/deleterecord' : {
             post :{
                 handler : comp.sectionDeleteRecord,
                 authenticate : true,
                 permissions : 'section_delete'
             }
         },
-        '/documentation/sections/deleterecordtruncate' : {
+        'sections/deleterecordtruncate' : {
             post :{
-                handler : comp.sectionDeleteRecord,
+                handler : comp.sectionDeleteRecordTruncate,
                 authenticate : true,
                 permissions : 'section_delete'
             }
         },
+        'sections/page/:page' : {
+            post :{
+                handler : comp.sectionIndex,
+                authenticate : true,
+                permissions : 'section_index'
+            }
+        },
+        'sections/page/:page/sort/:sort/:order' : {
+            get :{
+                handler : comp.sectionIndex,
+                authenticate : true,
+                permissions : 'section_index'
+            }
+        },
+        //version route
+        'versions' : {
+            get :{
+                handler : comp.versionIndex,
+                authenticate : true,
+                permissions : 'version_index'
+            }
+        },
+        'versions/create' : {
+            get :{
+                handler : comp.versionCreate,
+                authenticate : true,
+                permissions : 'version_create'
+            },
+            post :{
+                handler : [comp.versionSaveCreate,comp.versionCreate],
+                authenticate : true,
+                permissions : 'version_create'
+            }
+        },
+        'versions/edit/:cid' : {
+            get :{
+                handler : comp.versionEdit,
+                authenticate : true,
+                permissions : 'version_edit'
+            },
+            post :{
+                handler : comp.versionSaveEdit,
+                authenticate : true,
+                permissions : 'version_edit'
+            }
+        },
+        'versions/delete' : {
+            post :{
+                handler : comp.versionDeleteRecord,
+                authenticate : true,
+                permissions : 'version_delete'
+            }
+        },
+        'versions/arrange-docs' : {
+            get :{
+                handler : comp.versionArrange,
+                authenticate : true,
+                permissions : 'arrange'
+            },
+            post :{
+                handler : comp.versionSaveArrange,
+                authenticate : true,
+                permissions : 'arrange'
+            }
+        },
+        'versions/arrange-docs/:version([0-9]+)' : {
+            get :{
+                handler : comp.versionArrange,
+                authenticate : true,
+                permissions : 'arrange'
+            },
+            post :{
+                handler : comp.versionSaveArrange,
+                authenticate : true,
+                permissions : 'arrange'
+            }
+        },
+        'versions/page/:page' : {
+            get :{
+                handler : comp.versionIndex,
+                authenticate : true,
+                permissions : 'version_index'
+            }
+        },
+        'versions/page/:page/sort/:sort/:order' : {
+            get :{
+                handler : comp.versionIndex,
+                authenticate : true,
+                permissions : 'version_index'
+            }
+        }
     }
 }
-
-
-//router.route('/documentation/sections/deleterecordtruncate').post(__acl.isAllow('section_delete'), section.deleteRecordTruncate);
-//router.route('/documentation/sections/page/:page').get(__acl.isAllow('section_index'), section.index);
-//router.route('/documentation/sections/page/:page/sort/:sort/:order').get(__acl.isAllow('section_index'),section.index);
-//
-//router.route('/documentation/versions').get(__acl.isAllow('version_index'), version.index);
-//router.route('/documentation/versions/create').get(__acl.isAllow('version_create'), version.create);
-//router.route('/documentation/versions/create').post(__acl.isAllow('version_create'), version.saveCreate);
-//router.route('/documentation/versions/edit/:cid').get(__acl.isAllow('version_edit'), version.edit);
-//router.route('/documentation/versions/edit/:cid').post(__acl.isAllow('version_edit'), version.saveEdit);
-//router.route('/documentation/versions/delete').post(__acl.isAllow('version_delete'), version.deleteRecord);
-//router.route('/documentation/versions/arrange-docs').get(__acl.isAllow('arrange'), version.arrange);
-//router.route('/documentation/versions/arrange-docs').post(__acl.isAllow('arrange'), version.saveArrange);
-//router.route('/documentation/versions/arrange-docs/:version([0-9]+)').get(__acl.isAllow('arrange'), version.arrange);
-//router.route('/documentation/versions/arrange-docs/:version([0-9]+)').post(__acl.isAllow('arrange'), version.saveArrange);
-//router.route('/documentation/versions/page/:page').get(__acl.isAllow('version_index'), version.index);
-//router.route('/documentation/versions/page/:page/sort/:sort/:order').get(__acl.isAllow('version_index'),version.index);
-//
-//module.exports = router;

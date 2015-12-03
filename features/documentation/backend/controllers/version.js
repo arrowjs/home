@@ -1,6 +1,7 @@
 'use strict';
 
 var slug = require('slug');
+
 slug.defaults.modes['pretty'] = {
     replacement: '-',
     symbols: true,
@@ -29,22 +30,34 @@ var breadcrumb =
         }
     ];
 module.exports = function (controller,component,app) {
-    controller.index = function (req, res) {
+
+    let itemOfPage = app.getConfig('pagination').numberItem || 10;
+    let isAllow = ArrowHelper.isAllow;
+    let adminPrefix = '/'+app.getConfig('admin_prefix');
+    controller.versionIndex = function (req, res) {
         // Create breadcrumb
-        //res.locals.breadcrumb = __.createBreadcrumb(breadcrumb);
+        res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb);
 
         // Add buttons
-        //res.locals.createButton = __acl.addButton(req, route, 'version_create', '/admin/documentation/versions/create/');
-        //res.locals.deleteButton = __acl.addButton(req, route, 'version_delete');
+        let toolbar = new ArrowHelper.Toolbar();
+        toolbar.addRefreshButton(adminPrefix+'/documentation/versions');
+        toolbar.addSearchButton(isAllow(req, 'version_index'));
+        toolbar.addCreateButton(isAllow(req, 'version_create'),'/admin/documentation/versions/create/');
+        toolbar.addDeleteButton(isAllow(req, 'version_delete'));
 
         // Get current page and default sorting
         var page = req.params.page || 1;
-        var column = req.params.sort || 'id';
-        var order = req.params.order || 'desc';
-        //res.locals.root_link = '/admin/documentation/versions/page/' + page + '/sort';
+
+        // Store search data to session
+        let session_search = {};
+        if (req.session.search) {
+            session_search = req.session.search;
+        }
+        session_search[route + '_version_list'] = req.url;
+        req.session.search = session_search;
 
         // Create filter
-        var filter = __.createFilter(req, res, route, '/admin/documentation/versions', column, order, [
+        var table = [
             {
                 column: "id",
                 width: '1%',
@@ -117,59 +130,71 @@ module.exports = function (controller,component,app) {
                     data_type: 'string'
                 }
             }
-        ]);
-
+        ];
+        /*
+        * createFilter to render table data and send some params to views
+        * totalPage, currentPage ,currentColumn, currentOrder ...
+        * */
+        let filter = ArrowHelper.createFilter(req, res, table, {
+            rootLink: adminPrefix+'/documentation/versions/page/$page/sort',
+            limit: itemOfPage
+        });
         // Find all versions
-        __models.version.findAndCountAll({
-            where: filter.values,
-            order: column + " " + order,
-            limit: __config.pagination.number_item,
-            offset: (page - 1) * __config.pagination.number_item
+        app.models.version.findAndCountAll({
+            where: filter.conditions,
+            order: filter.order,
+            limit: itemOfPage,
+            offset: (page - 1) * itemOfPage
         }).then(function (results) {
-            var totalPage = Math.ceil(results.count / __config.pagination.number_item);
-
+            var totalPage = Math.ceil(results.count /itemOfPage);
             // Render view
-            res.render(req, res, 'version/index', {
+            res.backend.render('version/index', {
                 title: "All Versions",
                 totalPage: totalPage,
                 items: results.rows,
-                currentPage: page
+                toolbar: toolbar.render(),
+
             });
         }).catch(function (error) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
-
             // Render view
-            res.render(req, res, 'version/index', {
+            res.backend.render('version/index', {
                 title: "All Versions",
                 totalPage: 1,
                 items: null,
-                currentPage: 1
+                toolbar: toolbar.render(),
             });
         });
     };
 
-    controller.create = function (req, res) {
-        res.locals.breadcrumb = __.createBreadcrumb(breadcrumb, {title: 'Create Version'});
-        res.locals.saveButton = __acl.addButton(req, route, 'version_create');
-        res.locals.backButton = "/admin/documentation/versions/";
-
+    controller.versionCreate = function (req, res) {
+        // Add buttons
+        let toolbar = new ArrowHelper.Toolbar();
+        toolbar.addBackButton(adminPrefix+"/documentation/versions/");
+        toolbar.addSaveButton(isAllow(req, 'version_create'));
         // Render view
-        res.render(req, res, 'version/new');
+        res.backend.render('version/new',{
+            title : 'Create Version',
+            toolbar : toolbar.render()
+        });
     };
 
-    controller.saveCreate = function (req, res) {
+    controller.versionSaveCreate = function (req, res,next) {
         // Get post data
         var data = req.body;
 
         if (data.published == 0 && data.is_current == 1) {
             req.flash.error('Cannot unpublish current version');
 
-            res.locals.breadcrumb = __.createBreadcrumb(breadcrumb, {title: 'Create Version'});
-            res.locals.saveButton = __acl.addButton(req, route, 'version_create');
-            res.locals.backButton = "/admin/documentation/versions/";
+            res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb, {title: 'Create Version'});
+            // Add buttons
+            let toolbar = new ArrowHelper.Toolbar();
+            toolbar.addBackButton(adminPrefix+"/documentation/versions/");
+            toolbar.addSaveButton(isAllow(req, 'version_create'));
 
-            return res.render(req, res, 'version/new', {
-                version: data
+            return res.backend.render('version/new', {
+                version: data,
+                toolbar : toolbar
             });
         }
 
@@ -184,152 +209,147 @@ module.exports = function (controller,component,app) {
             data.alias = slug(data.alias.toLowerCase());
         }
 
-        var new_version_id = 0;
+        let new_version_id = 0;
 
         var prom = Promise.all([
             // Find current version
-            __models.version.find({
-                where: {
-                    is_current: true
-                }
-            }),
-
+            app.models.version.find({where: {is_current: true}}),
             // Create version
-            __models.version.create(data)
-        ]).then(function (result) {
-            // Get id of created version
-            new_version_id = result[1].id;
+            app.models.version.create(data)
+            ])
+            .then(function (result) {
+                // Get id of created version
+                new_version_id = result[1].id;
+                // Reset current version if is_current was selected
+                if (data.is_current == 1) {
+                    return app.models.rawQuery("UPDATE version SET is_current = false WHERE id != " + new_version_id);
+                }
+                // If this is first version
+                if (result[0] == null) {
 
-            // Reset current version if is_current was selected
-            if (data.is_current == 1) {
-                __models.sequelize.query("UPDATE version SET is_current = false WHERE id != " + new_version_id);
-            }
-
-            // If this is first version
-            if (result[0] == null) {
-                req.flash.success("Add new version successfully");
-
-                // Redirect to edit page
-                res.redirect('/admin/documentation/versions/edit/' + new_version_id);
-
-                return prom.cancel();
-            } else {
-                // If this is not the first version, find sections of current version to clone
-                return __models.section.findAll({
-                    where: {
-                        version_id: result[0].id
-                    },
-                    order: 'ordering ASC'
-                });
-            }
-        }).then(function (sections) {
-            var promises = [];
-
-            // Clone sections
-            sections.forEach(function (value, index) {
-                var data = {
-                    title: value.title,
-                    alias: value.alias,
-                    description: value.description,
-                    ordering: value.ordering,
-                    published: value.published,
-                    version_id: new_version_id,
-                    created_by: req.user.id
-                };
-                promises.push(__models.section.create(data));
-
-                // Find apis of clone sections to clone
-                promises.push(__models.api.findAll({
-                    where: {
-                        section_id: value.id
-                    }
-                }));
-            });
-
-            return Promise.all(promises);
-        }).then(function (result) {
-            // Clone apis
-            var section_id = 0;
-            var promises = [];
-            result.forEach(function (val, i) {
-                if (!Array.isArray(result[i])) {
-                    section_id = val.id;
+                    //req.flash.success("Add new version successfully");
+                    // Redirect to edit page
+                    //res.redirect(adminPrefix+'/documentation/versions/edit/' + new_version_id);
+                    return prom.cancel();
                 } else {
-                    val.forEach(function (value, index) {
-                        var data = {
-                            title: value.title,
-                            alias: value.alias,
-                            markdown: value.markdown,
-                            html: value.html,
-                            published: value.published,
-                            ordering: value.ordering,
-                            published_at: value.published_at,
-                            section_id: section_id,
-                            created_by: req.user.id
-                        };
-                        promises.push(__models.api.create(data));
+                    // If this is not the first version, find sections of current version to clone
+                    return app.models.section.findAll({
+                        where: {
+                            version_id: result[0].id
+                        },
+                        order: 'ordering ASC'
                     });
                 }
+            })
+            .then(function (sections) {
+                var promises = [];
+                // Clone sections
+                if(sections)
+                sections.forEach(function (value, index) {
+                    var data = {
+                        title: value.title,
+                        alias: value.alias,
+                        description: value.description,
+                        ordering: value.ordering,
+                        published: value.published,
+                        version_id: new_version_id,
+                        created_by: req.user.id
+                    };
+                    promises.push(app.models.section.create(data));
+                    // Find apis of clone sections to clone
+                    promises.push(app.models.api.findAll({
+                        where: {
+                            section_id: value.id
+                        }
+                    }));
+                });
+
+                return Promise.all(promises);
+            }).then(function (result) {
+                // Clone apis
+                var section_id = 0;
+                var promises = [];
+                if(result)
+                result.forEach(function (val, i) {
+                    if (!Array.isArray(result[i])) {
+                        section_id = val.id;
+                    } else {
+                        val.forEach(function (value, index) {
+                            var data = {
+                                title: value.title,
+                                alias: value.alias,
+                                markdown: value.markdown,
+                                html: value.html,
+                                published: value.published,
+                                ordering: value.ordering,
+                                published_at: value.published_at,
+                                section_id: section_id,
+                                created_by: req.user.id
+                            };
+                            promises.push(app.models.api.create(data));
+                        });
+                    }
+                });
+                return Promise.all(promises);
+            }).then(function () {
+                req.flash.success("Add new version successfully");
+                // Redirect to edit page
+                res.redirect(adminPrefix+'/documentation/versions/edit/' + new_version_id);
+            }).catch(function (err) {
+                let messageError ='' ;
+                if(err.name == 'SequelizeValidationError'){
+                    err.errors.map(function (e) {
+                        if(e)
+                            messageError += e.message+'<br />';
+                    })
+                }else if (err.name == 'SequelizeUniqueConstraintError'){
+                    messageError = "Duplicate Version Name";
+                }else{
+                    messageError = err.message;
+                }
+                req.flash.error(messageError);
+                res.locals.version = data;
+                next();
             });
-
-            return Promise.all(promises);
-        }).then(function () {
-            req.flash.success("Add new version successfully");
-
-            // Redirect to edit page
-            res.redirect('/admin/documentation/versions/edit/' + new_version_id);
-        }).catch(function (error) {
-            if (error.name == 'SequelizeUniqueConstraintError') {
-                req.flash.error('Duplicate Version Name');
-            } else {
-                req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
-            }
-
-            // Re-render create page
-            res.locals.breadcrumb = __.createBreadcrumb(breadcrumb, {title: 'Create Version'});
-            res.locals.saveButton = __acl.addButton(req, route, 'version_create');
-            res.locals.backButton = "/admin/documentation/versions/";
-            res.render(req, res, 'version/new', {
-                version: data
-            });
-        });
     };
 
-    controller.edit = function (req, res) {
+    controller.versionEdit = function (req, res) {
         // Create breadcrumb
-        res.locals.breadcrumb = __.createBreadcrumb(breadcrumb, {title: 'Update Version'});
-
+        res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb, {title: 'Update Version'});
         // Add buttons
-        res.locals.saveButton = __acl.addButton(req, route, 'version_edit');
-        res.locals.backButton = "/admin/documentation/versions/";
+        let toolbar = new ArrowHelper.Toolbar();
+        toolbar.addBackButton(adminPrefix+"/documentation/versions/");
+        toolbar.addSaveButton(isAllow(req, 'version_edit'));
 
         // Find version by id
         app.models.version.findById(req.params.cid).then(function (version) {
             // Render view
-            res.render(req, res, 'version/new', {
-                version: version
+            res.backend.render('version/new', {
+                version: version,
+                toolbar : toolbar.render()
             });
         }).catch(function (error) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
-
             // Redirect to index page if has error
-            res.redirect('/admin/documentation/versions/');
+            res.redirect(adminPrefix+'/documentation/versions/');
         });
     };
 
-    controller.saveEdit = function (req, res) {
+    controller.versionSaveEdit = function (req, res) {
         // Get post data
         var data = req.body;
 
+        res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb, {title: 'Update Version'});
+        // Add buttons
+        let toolbar = new ArrowHelper.Toolbar();
+        toolbar.addBackButton(adminPrefix+"/documentation/versions/");
+        toolbar.addSaveButton(isAllow(req, 'version_edit'));
+
         if (data.published == 0 && data.is_current == 1) {
             req.flash.error('Cannot unpublish current version');
-
-            res.locals.breadcrumb = __.createBreadcrumb(breadcrumb, {title: 'Update Version'});
-            res.locals.saveButton = __acl.addButton(req, route, 'version_edit');
-            res.locals.backButton = "/admin/documentation/versions/";
-
-            return res.render(req, res, 'version/new', {
-                version: data
+            return res.backend.render('version/new', {
+                version: data,
+                toolbar : toolbar.render()
             });
         }
 
@@ -351,28 +371,33 @@ module.exports = function (controller,component,app) {
         }).then(function (version) {
             // Reset current version if is_current was selected
             if (version.is_current == 1) {
-                app.models.sequelize.query("UPDATE version SET is_current = false WHERE id != " + version.id);
+                app.models.rawQuery("UPDATE version SET is_current = false WHERE id != " + version.id);
             }
-
             req.flash.success("Update version successfully");
-
             // Redirect to edit page
-            res.redirect('/admin/documentation/versions/edit/' + version.id);
-        }).catch(function (error) {
-            if (error.name == 'SequelizeUniqueConstraintError') {
-                req.flash.error('Duplicate Version alias');
-            } else {
-                req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
+            res.redirect(adminPrefix+'/documentation/versions/edit/' + version.id);
+        }).catch(function (err) {
+            let messageError ='' ;
+            if(err.name == 'SequelizeValidationError'){
+                err.errors.map(function (e) {
+                    if(e)
+                        messageError += e.message+'<br />';
+                })
+            }else if (err.name == 'SequelizeUniqueConstraintError'){
+                messageError = "Duplicate Version Name";
+            }else{
+                messageError = err.message;
             }
-
+            req.flash.error(messageError);
             // Re-render edit page if has error
-            res.render(req, res, 'version/new', {
-                version: data
+            res.backend.render('version/new', {
+                version: data,
+                toolbar : toolbar.render()
             });
         });
     };
 
-    controller.deleteRecord = function (req, res) {
+    controller.versionDeleteRecord = function (req, res) {
         // Delete record by array of ids
         app.models.version.destroy({
             where: {
@@ -394,9 +419,9 @@ module.exports = function (controller,component,app) {
         });
     };
 
-    controller.arrange = function (req, res) {
+    controller.versionArrange = function (req, res) {
         // Create breadcrumb
-        res.locals.breadcrumb = __.createBreadcrumb(breadcrumb);
+        res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb);
 
         // Set conditions with selected version
         var conditions = 'version.is_current = true';
@@ -457,7 +482,7 @@ module.exports = function (controller,component,app) {
             return Promise.all(promises);
         }).then(function () {
             // Render view
-            res.render(req, res, 'version/arrange', {
+            res.backend.render('version/arrange', {
                 title: "Arrange Docs",
                 data: data
             });
@@ -465,14 +490,14 @@ module.exports = function (controller,component,app) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
 
             // Render view if has error
-            res.render(req, res, 'version/arrange', {
+            res.backend.render('version/arrange', {
                 title: "Arrange Docs",
                 items: null
             });
         });
     };
 
-    controller.saveArrange = function (req, res) {
+    controller.versionSaveArrange = function (req, res) {
         // Get post data
         var data = req.body.data_json;
 

@@ -1,14 +1,13 @@
-{% extends 'layout.html' %}
+{% extends '_layout.twig' %}
 
 {% block cssExtends %}
-    <link href="/theme_resources/backend/default/plugins/select2/select2.min.css" rel="stylesheet">
-    <link href="/theme_resources/backend/default/plugins/lepture-markdown/editor.css" rel="stylesheet">
+    <link href="/backend/adminLTE/assets/plugins/select2/select2.min.css" rel="stylesheet">
+    <link href="/backend/adminLTE/assets/plugins/lepture-markdown/editor.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
     <form id="edit-form" method="post">
-        {% include "toolbar.html" %}
-
+        {{ toolbar | safe }}
         <div class="row">
             <div class="col-md-12">
                 <div class=" box box-solid box-primary">
@@ -75,8 +74,8 @@
 {% endblock %}
 
 {% block jsExtends %}
-    <script src="/theme_resources/backend/default/plugins/lepture-markdown/editor.js"></script>
-    <script src="/theme_resources/backend/default/plugins/lepture-markdown/marked.js"></script>
+    <script src="/backend/adminLTE/assets/plugins/lepture-markdown/editor.js"></script>
+    <script src="/backend/adminLTE/assets/plugins/lepture-markdown/marked.js"></script>
     <script>
         $(function () {
             var editor = new Editor({

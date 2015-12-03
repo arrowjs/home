@@ -25,25 +25,21 @@ module.exports = function (controller,component,app) {
 
     let itemOfPage = app.getConfig('pagination').numberItem || 10;
     let isAllow = ArrowHelper.isAllow;
+    let adminPrefix = '/'+app.getConfig('admin_prefix');
     /*
     * List all sections
     * */
-    controller.sectionIndex = function (req, res) {
-        // Create breadcrumb
+     controller.sectionIndex = function (req, res) {
+         // Create breadcrumb
         res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb);
         // Add buttons and check authorities
         let toolbar = new ArrowHelper.Toolbar();
+        toolbar.addRefreshButton(adminPrefix+'/documentation/sections');
+        toolbar.addSearchButton(isAllow(req, 'section_index'));
         toolbar.addCreateButton(isAllow(req, 'section_create'),'/admin/documentation/sections/create/');
         toolbar.addDeleteButton(isAllow(req, 'section_delete'));
-
-        // Get current page and default sorting
+         // Get current page and default sorting
         var page = req.params.page || 1;
-        var column = req.params.sort || 'id';
-        var order = req.params.order || 'desc';
-        //res.locals.root_link = '/admin/documentation/sections/page/' + page + '/sort';
-
-        // Create filter
-        //var filter = __.createFilter(req, res, route, '/admin/documentation/sections', column, order, [
         let table =[
             {
                 column: "id",
@@ -78,14 +74,11 @@ module.exports = function (controller,component,app) {
                 }
             }
         ];
-
         let filter = ArrowHelper.createFilter(req, res, table, {
-            rootLink: '/admin/documentation/sections/page/' + page + '/sort',
-            limit: itemOfPage,
-            order : order,
-            page : page
+            rootLink: adminPrefix+'/documentation/sections/page/$page/sort',
+            limit: itemOfPage
         });
-        // Find all sections
+         // Find all sections
         app.models.section.findAndCountAll({
             include: [
                 {
@@ -93,15 +86,14 @@ module.exports = function (controller,component,app) {
                     attributes: ['name']
                 }
             ],
-            where: filter.values,
-            order: column + " " + order,
+            where: filter.conditions,
+            order: filter.order,
             limit: itemOfPage,
             offset: (page - 1) * itemOfPage
         }).then(function (results) {
             var totalPage = Math.ceil(results.count / itemOfPage);
-
             // Render view
-            res.render( 'section/index', {
+            res.backend.render( 'section/index', {
                 title: "All Sections",
                 totalPage: totalPage,
                 items: results.rows,
@@ -110,9 +102,8 @@ module.exports = function (controller,component,app) {
             });
         }).catch(function (error) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
-
             // Render view if has error
-            res.render( 'section/index', {
+            res.backend.render( 'section/index', {
                 title: "All Sections",
                 totalPage: 1,
                 items: null,
@@ -135,15 +126,16 @@ module.exports = function (controller,component,app) {
             order: "is_current DESC, id DESC"
         }).then(function (versions) {
             // Render view
-            res.render( 'section/new', {
+            res.backend.render( 'section/new', {
+                title : 'Create New Section',
                 versions: versions,
                 toolbar : toolbar.render()
             });
         }).catch(function (error) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
-
             // Render view if has error
-            res.render( 'section/new', {
+            res.backend.render( 'section/new', {
+                title : 'Create New Section',
                 versions: null,
                 toolbar : toolbar.render()
             });
@@ -189,7 +181,8 @@ module.exports = function (controller,component,app) {
             app.models.version.findAll({
                 order: "is_current DESC, id DESC"
             }).then(function (versions) {
-                res.render( 'section/new', {
+                res.backend.render( 'section/new', {
+                    title : 'Create New Section',
                     versions: versions,
                     section: data,
                     toolbar : toolbar.render()
@@ -219,7 +212,8 @@ module.exports = function (controller,component,app) {
             ]
         ).then(function (result) {
                 // Render view
-                res.render('section/new', {
+                res.backend.render('section/new', {
+                    title : 'Edit section',
                     versions: result[0],
                     section: result[1],
                     toolbar : toolbar.render()
@@ -228,7 +222,8 @@ module.exports = function (controller,component,app) {
                 req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
 
                 // Render view if has error
-                res.render('section/new', {
+                res.backend.render('section/new', {
+                    title : 'Edit section',
                     versions: null,
                     section: null,
                     toolbar : toolbar.render()
@@ -274,7 +269,8 @@ module.exports = function (controller,component,app) {
             app.models.version.findAll({
                 order: "is_current DESC, id DESC"
             }).then(function (versions) {
-                res.render('section/new', {
+                res.backend.render('section/new', {
+                    title : 'Edit section',
                     versions: versions,
                     section: data,
                     toolbar : toolbar

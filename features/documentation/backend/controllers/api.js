@@ -1,10 +1,10 @@
 'use strict';
 
-var slug = require('slug');
-var Promise = require('arrowjs').Promise;
+let slug = require('slug');
+let Promise = require('arrowjs').Promise;
 let route = 'documentation';
 
-var breadcrumb =
+let breadcrumb =
     [
         {
             title: 'Home',
@@ -26,18 +26,20 @@ module.exports = function (controller, component, app) {
 
     let itemOfPage = app.getConfig('pagination').numberItem || 10;
     let isAllow = ArrowHelper.isAllow;
+    let adminPrefix = '/'+app.getConfig('admin_prefix');
     controller.apiIndex = function (req, res) {
         // Create breadcrumb
         res.locals.breadcrumb = ArrowHelper.createBreadcrumb(breadcrumb);
+
         // Add buttons and check authorities
         let toolbar = new ArrowHelper.Toolbar();
+        toolbar.addRefreshButton(adminPrefix+'/documentation/apis');
+        toolbar.addSearchButton(isAllow(req, 'api_index'));
         toolbar.addCreateButton(isAllow(req, 'api_create'),'/admin/documentation/apis/create');
         toolbar.addDeleteButton(isAllow(req, 'api_delete'));
 
         // Get current page and default sorting
         var page = req.params.page || 1;
-        var column = req.params.sort || 'id';
-        var order = req.params.order || 'asc';
 
         // Create filter
         let table = [
@@ -122,10 +124,8 @@ module.exports = function (controller, component, app) {
         ];
 
         let filter = ArrowHelper.createFilter(req, res, table, {
-            rootLink: '/admin/documentation/apis/page/' + page + '/sort',
-            limit: itemOfPage,
-            order : order,
-            page : page
+            rootLink: '/admin/documentation/apis/page/$page/sort',
+            limit: itemOfPage
         });
 
         app.models.api.findAndCountAll({
@@ -148,13 +148,13 @@ module.exports = function (controller, component, app) {
                     where: ['1 = 1']
                 }
             ],
-            where: filter.values,
-            order: column + " " + order,
+            where: filter.conditions,
+            order: filter.order,
             limit: itemOfPage,
             offset: (page - 1) * itemOfPage
         }).then(function (results) {
             var totalPage = Math.ceil(results.count / itemOfPage);
-            res.render('api/index', {
+            res.backend.render('api/index', {
                 title: 'All APIs document',
                 totalPage: totalPage,
                 items: results.rows,
@@ -163,7 +163,7 @@ module.exports = function (controller, component, app) {
             });
         }).catch(function (error) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
-            res.render('api/index', {
+            res.backend.render('api/index', {
                 title: 'All APIs document',
                 totalPage: 1,
                 items: null,
@@ -190,7 +190,7 @@ module.exports = function (controller, component, app) {
             ],
             order: 'version_id DESC, ordering ASC'
         }).then(function (sections) {
-            res.render('api/new', {
+            res.backend.render('api/new', {
                 title: 'Add New API',
                 sections: sections,
                 toolbar : toolbar.render()
@@ -198,7 +198,7 @@ module.exports = function (controller, component, app) {
         }).catch(function (error) {
             req.flash.error('Name: ' + error.name + '<br />' + 'Message: ' + error.message);
             // Render view
-            res.render('api/new', {
+            res.backend.render('api/new', {
                 title: 'Add New API',
                 sections: null,
                 toolbar : toolbar.render()
@@ -252,7 +252,7 @@ module.exports = function (controller, component, app) {
                 ],
                 order: 'version_id DESC, ordering ASC'
             }).then(function (sections) {
-                res.render('api/new', {
+                res.backend.render('api/new', {
                     title: 'Add New API',
                     sections: sections,
                     api: data,
@@ -289,7 +289,7 @@ module.exports = function (controller, component, app) {
                 app.models.api.findById(api_id)
             ]
         ).then(function (results) {
-                res.render('api/new', {
+                res.backend.render('api/new', {
                     title: 'Edit API document',
                     sections: results[0],
                     api: results[1],
@@ -297,7 +297,7 @@ module.exports = function (controller, component, app) {
                 });
             }).catch(function (err) {
                 req.flash.error('Name: ' + err.name + '<br />' + 'Message: ' + err.message);
-                res.render('api/new', {
+                res.backend.render('api/new', {
                     title: 'Edit API document',
                     sections: null,
                     api: null,
@@ -355,7 +355,7 @@ module.exports = function (controller, component, app) {
                 }),
                 app.models.api.findById(api_id)
             ]).then(function (results) {
-                res.render('api/new', {
+                res.backend.render('api/new', {
                     title: 'Edit API document',
                     sections: results[0],
                     api: data
